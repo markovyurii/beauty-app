@@ -15,11 +15,6 @@ const calendarRoutes = require('./routes/calendarRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(express.static(path.join(__dirname, '../client/dist')));
-app.get('/*path', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
-
 
 
 // ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB
@@ -71,6 +66,11 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
+
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get('/*path', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 // ЗАПУСК СЕРВЕРА
 app.listen(PORT, () => console.log(`🚀 Професійний бєкенд успішно запущено на порту ${PORT}`));
