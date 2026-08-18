@@ -1,0 +1,10 @@
+{
+  "short_name": "Beauty CRM",
+  "name": "Beauty Assistant CRM",
+  "icons": [],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#db2777",
+  "display": "standalone",
+  "orientation": "portrait"
+}

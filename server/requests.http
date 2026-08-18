@@ -1,0 +1,29 @@
+POST http://localhost:5000/api/services 
+Content-Type: application/json 
+
+{
+"name": "Манікюр з покриттям гель-лаком",
+"price": 550
+}
+
+###
+
+POST http://localhost:5000/api/appointments
+Content-Type: application/json
+
+{
+    "clientName": "Марія",
+    "serviceId": "6a83396f301dd932923da0ee",
+    "date": "2026-08-18T14:00:00.000Z"
+}
+
+###
+
+### 4. Отримати журнал усіх записів клієнтів
+GET http://localhost:5000/api/appointments
+
+
+###
+
+### 5. Отримати фінансовий звіт за сьогодні
+GET http://localhost:5000/api/analytics
