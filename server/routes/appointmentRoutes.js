@@ -23,14 +23,11 @@ router.post('/', async (req, res) => {
             formattedPhone = `+${pureDigits}`;
         }
 
-        let client = await Client.findOne({ phone: formattedPhone });
-        
-        if (!client) {
-            client = new Client({ name: clientName, phone: formattedPhone });
-            await client.save();
-        } else {
-            await Client.findByIdAndUpdate(client._id, { name: clientName });
-        }
+        await Client.findOneAndUpdate(
+            { phone: formattedPhone },
+            { name: clientName },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
         const newAppointment = new Appointment({
             clientName,

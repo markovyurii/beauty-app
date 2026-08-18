@@ -12,15 +12,30 @@ router.get('/', async (req, res) => {
 });
 
 // Додавання послуги
+// ДОДАВАННЯ ПОСЛУГИ В ПРАЙС (Виправлено типи даних для Express 5)
 router.post('/', async (req, res) => {
     try {
         const { name, price, duration } = req.body;
-        const newService = new Service({ name, price, duration: duration ? Number(duration) : 60 });
-        res.status(201).json(await newService.save());
+
+        // Перевірка наявності даних
+        if (!name || !price) {
+            return res.status(400).json({ message: 'Назва та ціна послуги обовʼязкові' });
+        }
+
+        const newService = new Service({
+            name: String(name).trim(),
+            price: Number(price),
+            duration: duration ? Number(duration) : 60 // 
+        });
+
+        const savedService = await newService.save();
+        res.status(201).json(savedService);
     } catch (error) {
-        res.status(400).json({ message: 'Помилка валідації', error: error.message });
+        console.error("Помилка MongoDB при створенні послуги:", error.message);
+        res.status(400).json({ message: 'Помилка валідації послуги', error: error.message });
     }
 });
+
 
 // Видалення послуги
 router.delete('/:id', async (req, res) => {
