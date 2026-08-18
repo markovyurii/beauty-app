@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+router.use(express.json());
 const Service = require('../models/Service');
+
+
 
 // Отримання прайсу
 router.get('/', async (req, res) => {
