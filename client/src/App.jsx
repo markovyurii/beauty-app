@@ -149,6 +149,7 @@ function App(){
         setDuration('60');
         setIsNewServicePopupOpen(false);
         loadData(selectedDate);
+        const r = await fetch(API.SERVICES); setServices(await r.json());
       }
     } catch(error) {
       console.error("Помилка створення послуги:", error);
@@ -179,6 +180,7 @@ function App(){
         loadData(selectedDate);
         loadMonthStats();
         setIsAppointmentPopupOpen(false);
+        loadClientsData();
       }
     } catch (error) { console.error(error); }
   }
@@ -225,7 +227,6 @@ function App(){
     const encodedText = encodeURIComponent(message);
      if (slot.clientPhone) {
        window.open(`viber://chat?number=${encodeURIComponent(slot.clientPhone)}&draft=${encodedText}`, '_blank');
-      console.log(cleanPhone)
       console.log(encodedText)
       setTimeout(() => {
         window.open(`https://viber.click{cleanPhone}?text=${encodedText}`, '_blank');
@@ -263,7 +264,7 @@ const handleUpdateClientNotes = async (clientId,newNotes) =>{
               <CalendarPage analytics={analytics} currentDate={currentDate} changeMonth={changeMonth} getDaysInMonth={getDaysInMonth} selectedDate={selectedDate} handleDayClick={handleDayClick} monthStats={monthStats} />
             } />
             <Route path="/clients" element={
-              <ClientsPage clients={clients} expandedClientId={expandedClientId} setExpandedClientId={setExpandedClientId} handleUpdateClientNotes={handleUpdateClientNotes} handleDeleteClient={handleDeleteClient} />
+               <ClientsPage clients={clients} expandedClientId={expandedClientId} setExpandedClientId={setExpandedClientId} handleUpdateClientNotes={handleUpdateClientNotes} handleDeleteClient={handleDeleteClient} loadClientsData={loadClientsData} />
             } />
             <Route path="/price" element={
               <PricePage services={services} setIsNewServicePopupOpen={setIsNewServicePopupOpen} handleDeleteService={handleDeleteService} />

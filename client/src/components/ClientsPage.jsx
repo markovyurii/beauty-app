@@ -1,6 +1,9 @@
 import React from 'react';
 
-function ClientsPage({ clients, expandedClientId, setExpandedClientId, handleUpdateClientNotes, handleDeleteClient }) {
+function ClientsPage({ clients, expandedClientId, setExpandedClientId, handleUpdateClientNotes, handleDeleteClient,loadClientsData }) {
+  useEffect(() => {
+    if (loadClientsData) loadClientsData();
+  }, []);
   return (
     <div className="space-y-3 animate-fade-in">
       <h2 className="text-lg font-black text-slate-800 px-1">👥 Картки клієнток ({clients.length})</h2>
