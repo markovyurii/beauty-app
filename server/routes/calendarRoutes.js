@@ -34,42 +34,47 @@ router.get('/day', async (req, res) => {
         const startOfDay = new Date(date); startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(date); endOfDay.setHours(23, 59, 59, 999);
 
+        // Завантажуємо візити на цей день
         const appointments = await Appointment.find({ date: { $gte: startOfDay, $lte: endOfDay } }).populate('service');
 
-        const halfHoursGrid = [];
+        const schedule = [];
+
+        // Генеруємо 48 слотів по 30 хвилин через цикл (без використання сплитів)
         for (let h = 0; h < 24; h++) {
-            const hourStr = h.toString().padStart(2, '0');
-            halfHoursGrid.push(`${hourStr}:00`);
-            halfHoursGrid.push(`${hourStr}:30`);
+            // Робимо два слоти для кожної години: :00 та :30
+            const timeSlots = [
+                { time: `${h.toString().padStart(2, '0')}:00`, mins: 0 },
+                { time: `${h.toString().padStart(2, '0')}:30`, mins: 30 }
+            ];
+
+            for (const slot of timeSlots) {
+                const slotTime = new Date(startOfDay);
+                slotTime.setHours(h, slot.mins, 0, 0);
+
+                // Шукаємо, чи зайнятий цей час процедурою
+                const active = appointments.find(app => {
+                    const appStart = new Date(app.date);
+                    const durationMin = app.service && app.service.duration ? app.service.duration : 60;
+                    const appEnd = new Date(appStart.getTime() + durationMin * 60 * 1000);
+                    return slotTime >= appStart && slotTime < appEnd;
+                });
+
+                schedule.push({
+                    time: slot.time,
+                    isBusy: !!active,
+                    id: active ? active._id : null,
+                    clientName: active ? active.clientName : null,
+                    clientPhone: active ? active.clientPhone : null,
+                    serviceName: active && active.service ? active.service.name : null,
+                    price: active ? active.finalPrice : null
+                });
+            }
         }
-
-        const schedule = hoursGrid.map(time => {
-            const [hours, minutes] = time.split(':').map(Number);
-            const slotTime = new Date(startOfDay);
-            slotTime.setHours(hours,minutes, 0, 0, 0);
-
-            const active = appointments.find(app => {
-                const appStart = new Date(app.date);
-                const durationMin = app.service && app.service.duration ? app.service.duration : 60;
-                const appEnd = new Date(appStart.getTime() + durationMin * 60 * 1000);
-                return slotTime >= appStart && slotTime < appEnd;
-            });
-
-            return {
-                time,
-                isBusy: !!active,
-                id: active ? active._id : null,
-                clientName: active ? active.clientName : null,
-                clientPhone: active ? active.clientPhone : null,
-                serviceName: active && active.service ? active.service.name : null,
-                price: active ? active.finalPrice : null
-            };
-        });
 
         res.status(200).json(schedule);
     } catch (error) {
+        console.error("Помилка сітки дня 30 хв:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
-
 module.exports = router;
