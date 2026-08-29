@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 
-function ClientsPage({ clients, expandedClientId, setExpandedClientId, handleUpdateClientNotes, handleDeleteClient, loadClientsData }) {
+function  ClientsPage({ clients, expandedClientId, setExpandedClientId, handleUpdateClientNotes, handleDeleteClient, loadClientsData }) {
   useEffect(() => {
     if (loadClientsData) loadClientsData();
   }, []);

@@ -312,9 +312,14 @@ const handleUpdateClientNotes = async (clientId,newNotes) =>{
                   // Вираховуємо час завершення процедури для об'єднаної картки
                   const clientSlots = daySchedule.filter(t => t.id === slot.id);
                   const lastSlotTime = clientSlots[clientSlots.length - 1].time;
-                  const [h] = lastSlotTime.split(':').map(Number);
-                  const endTime = `${(h + 1).toString().padStart(2, '0')}:00`;
-
+                  const [h, m] = lastSlotTime.split(':').map(Number);
+                  let endH = h;
+                  let endM = m + 30;
+                  if (endM >= 60) {
+                    endH += 1;
+                    endM = 0;
+                  }
+                  const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
                   return (
                     <div 
                       key={slot.id} 

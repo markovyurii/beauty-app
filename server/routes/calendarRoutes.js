@@ -36,15 +36,17 @@ router.get('/day', async (req, res) => {
 
         const appointments = await Appointment.find({ date: { $gte: startOfDay, $lte: endOfDay } }).populate('service');
 
-        const hoursGrid = [];
+        const halfHoursGrid = [];
         for (let h = 0; h < 24; h++) {
-            hoursGrid.push(`${h.toString().padStart(2, '0')}:00`);
+            const hourStr = h.toString().padStart(2, '0');
+            halfHoursGrid.push(`${hourStr}:00`);
+            halfHoursGrid.push(`${hourStr}:30`);
         }
 
         const schedule = hoursGrid.map(time => {
-            const [hours] = time.split(':').map(Number);
+            const [hours, minutes] = time.split(':').map(Number);
             const slotTime = new Date(startOfDay);
-            slotTime.setHours(hours, 0, 0, 0);
+            slotTime.setHours(hours,minutes, 0, 0, 0);
 
             const active = appointments.find(app => {
                 const appStart = new Date(app.date);
