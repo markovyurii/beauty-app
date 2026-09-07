@@ -94,7 +94,6 @@ router.put('/:id', async (req, res) => {
             { upsert: true, new: true }
         );
 
-
         const updatedAppointment = await Appointment.findByIdAndUpdate(
             appointmentId,
             {
@@ -102,7 +101,7 @@ router.put('/:id', async (req, res) => {
                 clientPhone: formattedPhone,
                 service: serviceId,
                 finalPrice: customPrice !== undefined && customPrice !== '' ? Number(customPrice) : targetService.price ,
-                date:date,
+                date: date,
             },
             { new: true }
         );
@@ -112,6 +111,7 @@ router.put('/:id', async (req, res) => {
          res.status(200).json(updatedAppointment);
     } catch (error) {
         console.error("Помилка оновлення візиту:", error.message);
+        console.error("Критична помилка MongoDB PUT 400:", error.message);
         res.status(400).json({ message: 'Помилка оновлення', error: error.message });
     }
     });
