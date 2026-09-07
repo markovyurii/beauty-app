@@ -185,11 +185,11 @@ function App(){
         setSelectedService('');
         setAppointmentPrice('');
         setAppointmentTime('09:00');
-        setEditingAppointmentId(null); 
         setIsAppointmentPopupOpen(false); 
        await loadData(selectedDate);
        await loadMonthStats();
        await loadClientsData();
+       setEditingAppointmentId(null); 
       }
     } catch (error) { console.error(error); }
   }
@@ -203,11 +203,12 @@ function App(){
   };
 
   const handleEditAppointment = (appointment) => {
-    setEditingAppointmentId(appointment._id);
+    setEditingAppointmentId(appointment.id);
     setClientName(appointment.clientName);
     setClientPhone(appointment.clientPhone);
     setAppointmentTime(appointment.time || '09:00'); 
     setAppointmentDate(selectedDate);
+    console.log(appointment);
     const foundService = services.find(s => s.name === appointment.serviceName);
     if (foundService) setSelectedService(foundService._id);
     setAppointmentPrice(appointment.price);
