@@ -40,7 +40,7 @@ router.get('/day', async (req, res) => {
         const schedule = [];
 
         // Генеруємо 48 слотів по 30 хвилин через цикл (без використання сплитів)
-        for (let h = 0; h < 24; h++) {
+        for (let h = 9; h < 24; h++) {
             // Робимо два слоти для кожної години: :00 та :30
             const timeSlots = [
                 { time: `${h.toString().padStart(2, '0')}:00`, mins: 0 },

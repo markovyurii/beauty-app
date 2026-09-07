@@ -71,4 +71,49 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+router.put('/:id', async (req, res) => {
+    try {
+        const { clientName, clientPhone, serviceId, date, customPrice } = req.body;
+        const appointmentId  = req.params.id;
+        const targetService = await Service.findById(serviceId);
+        if (!targetService) return res.status(404).json({ message: 'Послугу не знайдено в прайсі' });
+        const pureDigits = clientPhone.replace(/\D/g, '');
+        let formattedPhone = '';
+        
+        if (pureDigits.length === 10 && pureDigits.startsWith('0')) {
+            formattedPhone = `+38${pureDigits}`;
+        } else if (pureDigits.length === 12 && pureDigits.startsWith('380')) {
+            formattedPhone = `+${pureDigits}`;
+        } else {
+            formattedPhone = `+${pureDigits}`;
+        }
+
+        await Client.findOneAndUpdate(
+            { phone: formattedPhone },
+            { name: clientName },
+            { upsert: true, new: true }
+        );
+
+
+        const updatedAppointment = await Appointment.findByIdAndUpdate(
+            appointmentId,
+            {
+                clientName,
+                clientPhone: formattedPhone,
+                service: serviceId,
+                finalPrice: customPrice !== undefined && customPrice !== '' ? Number(customPrice) : targetService.price ,
+                date:date,
+            },
+            { new: true }
+        );
+        if (!updatedAppointment) {
+            return res.status(404).json({ message: 'Запис не знайдено в базі даних' });
+        }
+         res.status(200).json(updatedAppointment);
+    } catch (error) {
+        console.error("Помилка оновлення візиту:", error.message);
+        res.status(400).json({ message: 'Помилка оновлення', error: error.message });
+    }
+    });
+
 module.exports = router;

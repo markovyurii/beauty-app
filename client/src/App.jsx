@@ -13,7 +13,7 @@ function App(){
 // Дані з бази
   const [services, setServices] = useState([]);
   const [analytics, setAnalytics] = useState({day: {total:0}, month: {total:0}});
-  const [appointments, setAppointments] = useState([]);
+  const [appointmentDate, setAppointmentDate] = useState('');
   const [daySchedule, setDaySchedule] = useState([]);
   const [monthStats, setMonthStats] = useState({});
   const [clients,setClients] = useState([]);
@@ -41,7 +41,8 @@ function App(){
   const [clientPhone, setClientPhone] = useState(''); 
   const [appointmentTime, setAppointmentTime] = useState('');
   const [selectedService, setSelectedService] = useState('');
-  const [appointmentPrice, setAppointmentPrice] = useState(''); 
+  const [appointmentPrice, setAppointmentPrice] = useState('');
+  const [editingAppointmentId, setEditingAppointmentId] = useState(null); 
 
   
 // Завантаження денних даних
@@ -124,8 +125,10 @@ function App(){
   }
 
    const handleFreeSlotClick = (time) => {
+    setEditingAppointmentId(null);
     setAppointmentTime(time); // Автоматично підставляємо обрану годину в форму
     loadClientsData();
+    setAppointmentDate(selectedDate);
     setIsAppointmentPopupOpen(true); // Відкриваємо попап запису клієнта
   };
    const handleServiceChange = (serviceId) => {
@@ -160,8 +163,11 @@ function App(){
     e.preventDefault();
     try {
       const fullDateTime = `${selectedDate}T${appointmentTime}:00`;
-      const responce = await fetch(API.APPOINTMENTS,{
-        method: 'POST',
+      const isEditing = editingAppointmentId && editingAppointmentId !== null;
+      const url = isEditing ? `${API.APPOINTMENTS}/${editingAppointmentId}` : API.APPOINTMENTS;
+      const method = isEditing ? 'PUT' : 'POST';
+      const responce = await fetch(url,{
+        method: method,
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           clientName,
@@ -174,12 +180,13 @@ function App(){
       if (responce.ok) {
         setClientName('');
         setClientPhone('');
-        setAppointmentTime('');
+        setAppointmentTime('09:00');
         setSelectedService('');
         setAppointmentPrice('');
+        setEditingAppointmentId(null); 
+        setIsAppointmentPopupOpen(false); 
         loadData(selectedDate);
         loadMonthStats();
-        setIsAppointmentPopupOpen(false);
         loadClientsData();
       }
     } catch (error) { console.error(error); }
@@ -192,6 +199,18 @@ function App(){
       if (res.ok) loadData(selectedDate); loadMonthStats();
     } catch (error) { console.error(error); }
   };
+
+  const handleEditAppointment = (appointment) => {
+    setEditingAppointmentId(appointment._id);
+    setClientName(appointment.clientName);
+    setClientPhone(appointment.clientPhone);
+    setAppointmentTime(appointment.time || '09:00'); 
+    setAppointmentDate(selectedDate);
+    const foundService = services.find(s => s.name === appointment.serviceName);
+    if (foundService) setSelectedService(foundService._id);
+    setAppointmentPrice(appointment.price);
+    setIsAppointmentPopupOpen(true);
+  }
 
   const handleDeleteService = async (id) => {
     if (!window.confirm("Видалити цю послугу з прайс-листа?")) return;
@@ -281,7 +300,7 @@ const handleUpdateClientNotes = async (clientId,newNotes) =>{
                 <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">
                   Розклад: {new Date(selectedDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}
                 </h3>
-                <button type="button" onClick={() => setIsDayPopupOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
+                <button type="button" onClick={() =>{ setIsDayPopupOpen(false); setEditingAppointmentId(null); }} className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
               </div>
 
               {/* Цілодобова погодинна сітка годин */}
@@ -343,6 +362,14 @@ const handleUpdateClientNotes = async (clientId,newNotes) =>{
                     >
                       💬
                     </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleEditAppointment(slot)} 
+                      className="text-slate-400 hover:text-amber-500 text-sm p-1 cursor-pointer transition-colors"
+                      title="Редагувати запис"
+                    >
+                    ✏️
+                    </button>
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-slate-700 bg-white/80 px-2 py-0.5 rounded-md text-[11px]">{slot.price} ₴</span>
                         <button type="button" onClick={() => handleDeletedAppointment(slot.id)} className="text-slate-400 hover:text-red-500 cursor-pointer p-1">❌</button>
@@ -360,15 +387,20 @@ const handleUpdateClientNotes = async (clientId,newNotes) =>{
         {/* ========================================== */}
         {/* POPUP №2: ФОРМА ШВИДКОГО ЗАПИСУ КЛІЄНТА     */}
         {/* ========================================== */}
-                {/* ========================================== */}
-        {/* POPUP №2: ЗАПИС З ПОШУКОМ ПО ІМЕНІ ТА НОМЕРУ */}
-        {/* ========================================== */}
         {isAppointmentPopupOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
             <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-xl space-y-4 relative overflow-visible">
               <div className="flex justify-between items-center">
-                <h2 className="text-md font-extrabold text-slate-800">📅 Запис на {appointmentTime}</h2>
-                <button type="button" onClick={() => { setClientName(''); setClientPhone(''); setIsAppointmentPopupOpen(false); }} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+                <h2 className="text-md font-extrabold text-slate-800 flex items-center gap-1.5">
+                  {editingAppointmentId ? (
+    // Якщо ми редагуємо — просто пишемо чистий текст
+                    <span>✏️ Редагування запису</span>
+                    ) : (
+    // Якщо створюємо новий — виводимо час, але страхуємося через "|| ''" на випадок порожнечі
+                        <span>📅 Запис на {appointmentTime || '09:00'}</span>
+                                )}
+</h2>
+                <button type="button" onClick={() => { setIsAppointmentPopupOpen(false); setClientName(''); setClientPhone(''); setEditingAppointmentId(null); setSelectedService(null); }} className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer">✕</button>
               </div>
               <form onSubmit={handleAddAppointment} className="space-y-3">
                 
@@ -444,7 +476,35 @@ const handleUpdateClientNotes = async (clientId,newNotes) =>{
                     )
                   )}
                 </div>
-                
+                <div className="grid grid-cols-2 gap-2">
+  <div>
+    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Дата візиту</label>
+    <input 
+      type="date" 
+      value={selectedDate} // Використовує поточну обрану датуcalend
+      onChange={(e) => setSelectedDate(e.target.value)} 
+      required
+      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-hidden focus:border-pink-500 focus:bg-white"
+    />
+  </div>
+  <div>
+    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Час візиту</label>
+    <select 
+      value={appointmentDate} 
+      onChange={(e) => setAppointmentDate(e.target.value)} 
+      required
+      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-hidden focus:border-pink-500 focus:bg-white"
+    >
+      {/* Генеруємо список робочих годин від 09:00 до 21:00 з кроком 30 хвилин для вибору */}
+      {Array.from({ length: 25 }).map((_, i) => {
+        const h = Math.floor(i / 2) + 9;
+        const m = i % 2 === 0 ? '00' : '30';
+        const tStr = `${h.toString().padStart(2, '0')}:${m}`;
+        return <option key={tStr} value={tStr}>{tStr}</option>;
+      })}
+    </select>
+  </div>
+</div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Оберіть послугу</label>
                   <select value={selectedService} onChange={(e) => handleServiceChange(e.target.value)} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-pink-500 focus:bg-white">
