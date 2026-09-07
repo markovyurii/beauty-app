@@ -121,7 +121,9 @@ function App(){
     const tzOffset = day.getTimezoneOffset() * 60000;
     const localISODate = new Date(day.getTime() - tzOffset).toISOString().split('T')[0];
     setSelectedDate(localISODate);
+    loadData(localISODate); 
     setIsDayPopupOpen(true);
+    
   }
 
    const handleFreeSlotClick = (time) => {
@@ -180,14 +182,14 @@ function App(){
       if (responce.ok) {
         setClientName('');
         setClientPhone('');
-        setAppointmentTime('09:00');
         setSelectedService('');
         setAppointmentPrice('');
+        setAppointmentTime('09:00');
         setEditingAppointmentId(null); 
         setIsAppointmentPopupOpen(false); 
-        loadData(selectedDate);
-        loadMonthStats();
-        loadClientsData();
+       await loadData(selectedDate);
+       await loadMonthStats();
+       await loadClientsData();
       }
     } catch (error) { console.error(error); }
   }
