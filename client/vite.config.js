@@ -1,16 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite' // Імпортуємо новий Tailwind v4
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss() // Активуємо Tailwind як плагін для Vite
+    tailwindcss()
   ],
   server: {
     proxy: {
-      // Перенаправляємо запити з фронтенду (порт 5173) на бекенд (порт 5000)
-      '/api': {
+      // ОПТИМІЗАЦІЯ: додаємо регулярний вираз, щоб Vite правильно проксірував будь-які підмаршрути
+      '^/api/.*': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
