@@ -1,7 +1,7 @@
 const API_URL =
   typeof window !== 'undefined' &&
   window.location.hostname.includes('netlify.app')
-    ? 'https://beauty-app-five-olive.vercel.app/'
+    ? 'https://beauty-app-five-olive.vercel.app'
     : ''; // Порожній рядок, бо Vite використовує proxy. При деплої це полегшить життя.
 export const API = {
   SERVICES: `${API_URL}/api/services`,
