@@ -1,10 +1,9 @@
 {
   "version": 2,
-  "trailingSlash": false,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "server.js"
+      "source": "/api/:path*",
+      "destination": "server.js"
     }
   ]
 }
