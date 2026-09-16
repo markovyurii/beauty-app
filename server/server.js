@@ -29,17 +29,52 @@ app.use(
 );
 app.use(express.json());
 
+let cachedConnection = null;
+
+const connectDB = async () => {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+  if (cachedConnection && mongoose.connection.readyState === 2) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return connectDB();
+  }
+  try {
+    if (!process.env.MONGO_URI) throw new Error('MONGO_URI is missing');
+    cachedConnection = await mongoose.connect(process.env.MONGO_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log('🔌 База даних MongoDB успішно підключена!');
+    return cachedConnection;
+  } catch (err) {
+    console.error('❌ Критична помилка підключення до бази:', err);
+    cachedConnection = null;
+    throw err;
+  }
+};
+
+// Проміжний шар, який примусово підключає базу перед кожним запитом
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Помилка підключення до бази даних" });
+  }
+});
+
 // ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB
-if (process.env.MONGO_URI) {
-  mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
-    .catch((err) => console.error('❌ Помилка підключення до бази:', err));
-} else {
-  console.error(
-    '❌ Критична помилка: зміння MONGO_URI відсутня в налаштуваннях Vercel!',
-  );
-}
+//if (process.env.MONGO_URI) {
+  //mongoose
+   // .connect(process.env.MONGO_URI)
+   // .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
+   // .catch((err) => console.error('❌ Помилка підключення до бази:', err));
+//} else {
+ // console.error(
+  //  '❌ Критична помилка: зміння MONGO_URI відсутня в налаштуваннях Vercel!',
+ // );
+//}
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛИШАЄТЬСЯ В СЕРВЕРІ)
 // ==========================================
