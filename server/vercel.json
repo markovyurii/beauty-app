@@ -5,7 +5,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js"
+      "destination": "server.js?path=/api/$1"
     }
   ]
 }
