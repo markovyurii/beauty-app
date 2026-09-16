@@ -28,12 +28,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use((req, res, next) => {
-  if (req.query.path) {
-    req.url = req.query.path;
-  }
-  next();
-});
+
 app.use(express.json());
 
 // ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB
