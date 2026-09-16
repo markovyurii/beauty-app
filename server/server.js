@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 require('dotenv').config();
 
 // ОПТИМІЗАЦІЯ: Імпортуємо моделі для аналітики
@@ -16,20 +17,29 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(
   cors({
-    origin: '*', // Дозволяє запити з будь-якого сайту (ідеально для Netlify)
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ],
   }),
 );
-app.options('*', cors());
 app.use(express.json());
 
 // ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
-  .catch((err) => console.error('❌ Помилка підключення до бази:', err));
-
+if (process.env.MONGO_URI) {
+  mongoose
+    .connect(process.env.MONGO_URI)
+    .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
+    .catch((err) => console.error('❌ Помилка підключення до бази:', err));
+} else {
+  console.error(
+    '❌ Критична помилка: зміння MONGO_URI відсутня в налаштуваннях Vercel!',
+  );
+}
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛИШАЄТЬСЯ В СЕРВЕРІ)
 // ==========================================
