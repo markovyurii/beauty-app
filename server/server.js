@@ -43,6 +43,14 @@ if (!process.env.MONGO_URI) {
     })
     .catch((err) => {
       console.error('[DB] Помилка підключення:', err.name, err.message);
+
+      if (err.reason?.servers) {
+        for (const [address, detail] of err.reason.servers) {
+          console.error('[DB] Вузол:', address);
+          console.error('[DB] Причина:', detail.error?.name);
+          console.error('[DB] Деталі:', detail.error?.message);
+        }
+      }
     });
 }
 // ==========================================
