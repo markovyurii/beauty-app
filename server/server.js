@@ -98,33 +98,28 @@ app.get('/api/analytics', async (req, res) => {
     );
 
     // 2. Расчет за месяц
-    const startOfMonth = new Date(
-      baseDate.getFullYear(),
-      baseDate.getMonth(),
-      1,
-    );
-    const endOfMonth = new Date(
-      baseDate.getFullYear(),
-      baseDate.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
+    const startOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth(), 1);
+    const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const monthApps = await Appointment.find({
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
 
+    const totalMonth = monthApps.reduce((sum, app) => {
+      if (!app.date) return sum;
+
     // Считаем сумму ТОЛЬКО выполненных (тех, что уже прошли по времени)
     const totalMonth = monthApps.reduce((sum, app) => {
-      if (!app.date || !app.finalPrice) return sum;
-
+      if (!app.date) return sum;
+      
       const appointmentDate = new Date(app.date);
-      // Если дата записи меньше или равна текущему моменту — суммируем
-      if (appointmentDate <= now) {
-        return sum + (Number(app.finalPrice) || 0);
+      // СТРАХОВКА: Створюємо копію поточного часу і додаємо 1 день запасу,
+      // щоб різниця часових поясів хостингу Render ніяк не могла зламати перенесення записів!
+      const checkLimit = new Date(now);
+      checkLimit.setDate(checkLimit.getDate() + 1);
+
+      if (appointmentDate <= checkLimit) {
+        return sum + (app.finalPrice || 0);
       }
       return sum;
     }, 0);
@@ -162,9 +157,10 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
 
 app.use(express.static(path.join(__dirname, '../client/dist')));
-app.get('/*path', (req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
+
 
 // ЗАПУСК СЕРВЕРА
 app.listen(PORT, () =>
