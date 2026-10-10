@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// ОПТИМІЗАЦІЯ: Імпортуємо моделі для аналітики
+// Імпортуємо моделі
 const Appointment = require('./models/Appointment');
 
-// ПРОФЕСІЙНИЙ КРОК: Імпортуємо наші нові модулі маршрутів
+// Імпортуємо модулі маршрутів
 const serviceRoutes = require('./routes/serviceRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
@@ -15,6 +15,7 @@ const calendarRoutes = require('./routes/calendarRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
 app.use(
   cors({
     origin: '*',
@@ -54,35 +55,22 @@ const connectDB = async () => {
   }
 };
 
-// Проміжний шар, який примусово підключає базу перед кожним запитом
+// Проміжний шар підключення бази перед кожним запитом
 app.use(async (req, res, next) => {
   try {
     await connectDB();
     next();
   } catch (err) {
-    res.status(500).json({ error: 'Помилка підключення до бази даних' });
+    res.status(500).json({ error: "Помилка підключення до бази даних" });
   }
 });
 
-// ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB
-//if (process.env.MONGO_URI) {
-//mongoose
-// .connect(process.env.MONGO_URI)
-// .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
-// .catch((err) => console.error('❌ Помилка підключення до бази:', err));
-//} else {
-// console.error(
-//  '❌ Критична помилка: зміння MONGO_URI відсутня в налаштуваннях Vercel!',
-// );
-//}
 // ==========================================
-// 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛИШАЄТЬСЯ В СЕРВЕРІ)
+// 📊 ЕНДПОІНТ АНАЛІТИКИ (Виконані записи + без мутацій)
 // ==========================================
-aapp.get('/api/analytics', async (req, res) => {
+app.get('/api/analytics', async (req, res) => {
   try {
     const queryDate = req.query.date ? new Date(req.query.date) : new Date();
-
-    // 🚨 ВИПРАВЛЕНО: Обовʼязково оголошуємо поточний момент часу!
     const now = new Date();
 
     // Розрахунок за день
@@ -90,40 +78,25 @@ aapp.get('/api/analytics', async (req, res) => {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(queryDate);
     endOfDay.setHours(23, 59, 59, 999);
-
+    
     const dayApps = await Appointment.find({
-      date: { $gte: startOfDay, $lte: endOfDay },
+      date: { gte: startOfDay, lte: endOfDay },
     });
-    const totalDay = dayApps.reduce(
-      (sum, app) => sum + (app.finalPrice || 0),
-      0,
-    );
+    const totalDay = dayApps.reduce((sum, app) => sum + (app.finalPrice || 0), 0);
 
     // Розрахунок за місяць
-    const startOfMonth = new Date(
-      queryDate.getFullYear(),
-      queryDate.getMonth(),
-      1,
-    );
-    const endOfMonth = new Date(
-      queryDate.getFullYear(),
-      queryDate.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
-
+    const startOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth(), 1);
+    const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    
     const monthApps = await Appointment.find({
-      date: { $gte: startOfMonth, $lte: endOfMonth },
+      date: { gte: startOfMonth, lte: endOfMonth },
     });
 
     const totalMonth = monthApps.reduce((sum, app) => {
       if (!app.date) return sum;
-
+      
       const appointmentDate = new Date(app.date);
-      const checkLimit = new Date(now); // Тепер now існує і працює залізобетонно!
+      const checkLimit = new Date(now);
       checkLimit.setDate(checkLimit.getDate() + 1);
 
       if (appointmentDate <= checkLimit) {
@@ -132,15 +105,13 @@ aapp.get('/api/analytics', async (req, res) => {
       return sum;
     }, 0);
 
-    res
-      .status(200)
-      .json({ day: { total: totalDay }, month: { total: totalMonth } });
+    res.status(200).json({ day: { total: totalDay }, month: { total: totalMonth } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ТИМЧАСОВИЙ МАРШРУТ ДЛЯ ОЧИЩЕННЯ ТЕСТІВ (Залишаємо для гнучкості розробки)
+// ТИМЧАСОВИЙ МАРШРУТ ДЛЯ ОЧИЩЕННЯ ТЕСТІВ
 app.get('/api/clear-database-tests', async (req, res) => {
   try {
     const Client = require('./models/Client');
@@ -160,7 +131,11 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
 
+// ==========================================
+// 🛣 РОЗДАЧА СТАТИКИ REACT (БЕЗПЕЧНИЙ СТАНДАРТ ДЛЯ EXPRESS 5)
+// ==========================================
 app.use(express.static(path.join(__dirname, '../client/dist')));
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
