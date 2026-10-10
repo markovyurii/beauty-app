@@ -8,7 +8,7 @@
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "client/dist" } // <-- ВИПРАВЛЕНО: Вказали точний шлях до папки збірки Vite!
+      "config": { "distDir": "dist" }
     }
   ],
   "routes": [
@@ -17,8 +17,11 @@
       "dest": "server/server.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "client/$1"
+      "dest": "client/index.html"
     }
   ]
 }
