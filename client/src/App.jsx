@@ -144,7 +144,6 @@ function App() {
       .toISOString()
       .split('T')[0];
     setSelectedDate(localISODate);
-    loadData(localISODate);
     setIsDayPopupOpen(true);
   };
 
@@ -638,7 +637,6 @@ function App() {
                           const newDate = e.target.value;
                           setAppointmentDate(newDate);
                           setSelectedDate(newDate);
-                          loadData(newDate); // Оновлюємо години для цього дня
                         }}
                         required
                         className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-hidden focus:border-pink-500 focus:bg-white"
