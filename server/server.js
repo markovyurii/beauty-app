@@ -75,7 +75,6 @@ app.use(async (req, res, next) => {
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ З $)
 // ==========================================
-a;
 app.get('/api/analytics', async (req, res) => {
   try {
     const queryDate = req.query.date ? new Date(req.query.date) : new Date();
