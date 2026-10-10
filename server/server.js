@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// Імпортуємо моделі
+// Импортируем модели
 const Appointment = require('./models/Appointment');
 
-// Імпортуємо модулі маршрутів
+// Импортируем модули маршрутов
 const serviceRoutes = require('./routes/serviceRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
@@ -30,19 +30,18 @@ app.use(
 );
 app.use(express.json());
 
-// ОПТИМІЗОВАНО: Підключаємо базу даних один раз при старті
-const connectDB = async () => {
-  try {
-    if (!process.env.MONGO_URI) throw new Error('MONGO_URI is missing');
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('🔌 База даних MongoDB успішно підключена!');
-  } catch (err) {
-    console.error('❌ Критична помилка підключення до бази:', err);
-  }
-};
+// ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB (Асинхронно, без блокировки порта)
+if (process.env.MONGO_URI) {
+  mongoose
+    .connect(process.env.MONGO_URI)
+    .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
+    .catch((err) => console.error('❌ Помилка підключення до бази:', err));
+} else {
+  console.error('❌ Критична помилка: змінна MONGO_URI відсутня!');
+}
 
 // ==========================================
-// 📊 ЕНДПОІНТ АНАЛІТИКИ (Суворий стандарт з \$)
+// 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ)
 // ==========================================
 app.get('/api/analytics', async (req, res) => {
   try {
@@ -55,6 +54,7 @@ app.get('/api/analytics', async (req, res) => {
     const endOfDay = new Date(queryDate);
     endOfDay.setHours(23, 59, 59, 999);
     
+    // ИСПРАВЛЕНО: Возвращены обязательные знаки \$
     const dayApps = await Appointment.find({
       date: { $gte: startOfDay, $lte: endOfDay },
     });
@@ -64,6 +64,7 @@ app.get('/api/analytics', async (req, res) => {
     const startOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth(), 1);
     const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
     
+    // ИСПРАВЛЕНО: Возвращены обязательные знаки \$
     const monthApps = await Appointment.find({
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
@@ -116,9 +117,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-// ЗАПУСК СЕРВЕРА СУВОРО ПІСЛЯ ПІДКЛЮЧЕННЯ БАЗИ ДАНИХ
-connectDB().then(() => {
-  app.listen(PORT, () =>
-    console.log(`🚀 Професійний бєкенд успішно запущено на порту ${PORT}`),
-  );
-});
+// ЗАПУСК СЕРВЕРА (Мгновенный, как требует Render)
+app.listen(PORT, () =>
+  console.log(`🚀 Професійний бєкенд успішно запущено на порту ${PORT}`),
+);
