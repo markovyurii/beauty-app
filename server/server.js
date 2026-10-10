@@ -60,46 +60,60 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
-    res.status(500).json({ error: "Помилка підключення до бази даних" });
+    res.status(500).json({ error: 'Помилка підключення до бази даних' });
   }
 });
 
 // ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB
 //if (process.env.MONGO_URI) {
-  //mongoose
-   // .connect(process.env.MONGO_URI)
-   // .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
-   // .catch((err) => console.error('❌ Помилка підключення до бази:', err));
+//mongoose
+// .connect(process.env.MONGO_URI)
+// .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
+// .catch((err) => console.error('❌ Помилка підключення до бази:', err));
 //} else {
- // console.error(
-  //  '❌ Критична помилка: зміння MONGO_URI відсутня в налаштуваннях Vercel!',
- // );
+// console.error(
+//  '❌ Критична помилка: зміння MONGO_URI відсутня в налаштуваннях Vercel!',
+// );
 //}
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛИШАЄТЬСЯ В СЕРВЕРІ)
 // ==========================================
-app.get('/api/analytics', async (req, res) => {
+aapp.get('/api/analytics', async (req, res) => {
   try {
-    const baseDate = req.query.date ? new Date(req.query.date) : new Date();
+    const queryDate = req.query.date ? new Date(req.query.date) : new Date();
+
+    // 🚨 ВИПРАВЛЕНО: Обовʼязково оголошуємо поточний момент часу!
     const now = new Date();
 
-    // 1. Расчет за конкретный выбранный день
-    const startOfDay = new Date(baseDate);
+    // Розрахунок за день
+    const startOfDay = new Date(queryDate);
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(baseDate);
+    const endOfDay = new Date(queryDate);
     endOfDay.setHours(23, 59, 59, 999);
 
     const dayApps = await Appointment.find({
       date: { $gte: startOfDay, $lte: endOfDay },
     });
     const totalDay = dayApps.reduce(
-      (sum, app) => sum + (Number(app.finalPrice) || 0),
+      (sum, app) => sum + (app.finalPrice || 0),
       0,
     );
 
-    // 2. Расчет за месяц
-    const startOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth(), 1);
-    const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    // Розрахунок за місяць
+    const startOfMonth = new Date(
+      queryDate.getFullYear(),
+      queryDate.getMonth(),
+      1,
+    );
+    const endOfMonth = new Date(
+      queryDate.getFullYear(),
+      queryDate.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     const monthApps = await Appointment.find({
       date: { $gte: startOfMonth, $lte: endOfMonth },
@@ -108,14 +122,8 @@ app.get('/api/analytics', async (req, res) => {
     const totalMonth = monthApps.reduce((sum, app) => {
       if (!app.date) return sum;
 
-    // Считаем сумму ТОЛЬКО выполненных (тех, что уже прошли по времени)
-    const totalMonth = monthApps.reduce((sum, app) => {
-      if (!app.date) return sum;
-      
       const appointmentDate = new Date(app.date);
-      // СТРАХОВКА: Створюємо копію поточного часу і додаємо 1 день запасу,
-      // щоб різниця часових поясів хостингу Render ніяк не могла зламати перенесення записів!
-      const checkLimit = new Date(now);
+      const checkLimit = new Date(now); // Тепер now існує і працює залізобетонно!
       checkLimit.setDate(checkLimit.getDate() + 1);
 
       if (appointmentDate <= checkLimit) {
@@ -124,15 +132,11 @@ app.get('/api/analytics', async (req, res) => {
       return sum;
     }, 0);
 
-    // Возвращаем чистый JSON
-    res.status(200).json({
-      day: { total: totalDay },
-      month: { total: totalMonth },
-    });
+    res
+      .status(200)
+      .json({ day: { total: totalDay }, month: { total: totalMonth } });
   } catch (error) {
-    console.error('Ошибка в роуте аналитики:', error.message);
-    // Защита: даже если всё упало, возвращаем ноль, чтобы фронтенд не ломался!
-    res.status(200).json({ day: { total: 0 }, month: { total: 0 } });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -160,7 +164,6 @@ app.use(express.static(path.join(__dirname, '../client/dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
-
 
 // ЗАПУСК СЕРВЕРА
 app.listen(PORT, () =>
