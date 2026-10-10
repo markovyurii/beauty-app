@@ -125,12 +125,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
 
-// Заглушка для головного роуту API на Vercel
-app.get('/', (req, res) => {
-  res
-    .status(200)
-    .send('🚀 Beauty CRM Serverless API is running perfectly on Vercel...');
-});
+
 
 // КРИТИЧНО ДЛЯ VERCEL: Експортуємо наш додаток (запуск через app.listen у хмарі робить сам Vercel)
 module.exports = app;
