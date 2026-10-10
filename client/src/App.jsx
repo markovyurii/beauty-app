@@ -74,10 +74,22 @@ function App() {
   };
 
   // Завантаження списку клієнтів із бази
+
   const loadClientsData = async () => {
     try {
       const res = await fetch(API.CLIENTS);
-      setClients(await res.json());
+
+      if (!res.ok) {
+        throw new Error(`Помилка завантаження клієнтів: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error('API клієнтів повернув не масив');
+      }
+
+      setClients(data);
     } catch (error) {
       console.error('Помилка завантаження клієнтів:', error);
     }
