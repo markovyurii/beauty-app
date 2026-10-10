@@ -29,30 +29,49 @@ app.use(
 app.use(express.json());
 
 // ПІДКЛЮЧЕННЯ ДО MONGODB (Для Vercel Serverless – підключається при кожному виклику функції)
-if (!process.env.MONGO_URI) {
-  console.error('[DB] MONGO_URI відсутня в середовищі Vercel');
-} else {
-  console.log('[DB] MONGO_URI доступна');
 
-  mongoose
-    .connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 8000,
-    })
-    .then(() => {
-      console.log('[DB] MongoDB успішно підключена');
-    })
-    .catch((err) => {
-      console.error('[DB] Помилка підключення:', err.name, err.message);
+let mongoConnectionPromise = null;
 
-      if (err.reason?.servers) {
-        for (const [address, detail] of err.reason.servers) {
-          console.error('[DB] Вузол:', address);
-          console.error('[DB] Причина:', detail.error?.name);
-          console.error('[DB] Деталі:', detail.error?.message);
-        }
-      }
-    });
+async function connectToMongoDB() {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI відсутня в налаштуваннях');
+  }
+
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = mongoose
+      .connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 8000,
+      })
+      .then(() => {
+        console.log('[DB] MongoDB успішно підключена');
+      })
+      .catch((error) => {
+        mongoConnectionPromise = null;
+        throw error;
+      });
+  }
+
+  return mongoConnectionPromise;
 }
+
+// Перед обробкою API-запитів чекаємо на підключення до бази
+app.use(async (req, res, next) => {
+  try {
+    await connectToMongoDB();
+    next();
+  } catch (error) {
+    console.error('[DB] Помилка підключення:', error.name, error.message);
+
+    res.status(503).json({
+      error: 'База даних тимчасово недоступна',
+    });
+  }
+});
+
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ З $)
 // ==========================================
@@ -117,8 +136,6 @@ app.get('/api/analytics', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-
 
 // ==========================================
 // 🛣 ПІДКЛЮЧЕННЯ РОУТЕРІВ ДО ЕКСПРЕСУ (API)
