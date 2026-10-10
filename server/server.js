@@ -75,65 +75,89 @@ app.use(async (req, res, next) => {
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ З $)
 // ==========================================
+a;
 app.get('/api/analytics', async (req, res) => {
   try {
     const queryDate = req.query.date ? new Date(req.query.date) : new Date();
-    const now = new Date();
 
-    // Розрахунок за день
+    if (Number.isNaN(queryDate.getTime())) {
+      return res.status(400).json({
+        error: 'Некоректна дата',
+      });
+    }
+
+    const now = new Date();
     const startOfDay = new Date(queryDate);
     startOfDay.setHours(0, 0, 0, 0);
+
     const endOfDay = new Date(queryDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // ПРАВИЛЬНО: Використовуємо $gte та $lte
-    const dayApps = await Appointment.find({
-      date: { $gte: startOfDay, $lte: endOfDay },
-    });
-    const totalDay = dayApps.reduce(
-      (sum, app) => sum + (app.finalPrice || 0),
-      0,
-    );
-
-    // Розрахунок за місяць
     const startOfMonth = new Date(
       queryDate.getFullYear(),
       queryDate.getMonth(),
       1,
     );
+
     const endOfMonth = new Date(
       queryDate.getFullYear(),
       queryDate.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
+      1,
     );
 
-    // ПРАВИЛЬНО: Використовуємо $gte та $lte
-    const monthApps = await Appointment.find({
-      date: { $gte: startOfMonth, $lte: endOfMonth },
+    const checkLimit = new Date(now);
+    checkLimit.setDate(checkLimit.getDate() + 1);
+
+    const [dayResult, monthResult] = await Promise.all([
+      Appointment.aggregate([
+        {
+          $match: {
+            date: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: { $ifNull: ['$finalPrice', 0] } },
+          },
+        },
+      ]),
+
+      Appointment.aggregate([
+        {
+          $match: {
+            date: {
+              $gte: startOfMonth,
+              $lt: endOfMonth,
+              $lte: checkLimit,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: { $ifNull: ['$finalPrice', 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    res.status(200).json({
+      day: {
+        total: dayResult[0]?.total ?? 0,
+      },
+      month: {
+        total: monthResult[0]?.total ?? 0,
+      },
     });
-
-    const totalMonth = monthApps.reduce((sum, app) => {
-      if (!app.date) return sum;
-
-      const appointmentDate = new Date(app.date);
-      const checkLimit = new Date(now);
-      checkLimit.setDate(checkLimit.getDate() + 1);
-
-      if (appointmentDate <= checkLimit) {
-        return sum + (app.finalPrice || 0);
-      }
-      return sum;
-    }, 0);
-
-    res
-      .status(200)
-      .json({ day: { total: totalDay }, month: { total: totalMonth } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Analytics] Помилка:', error);
+    res.status(500).json({
+      error: 'Не вдалося завантажити аналітику',
+    });
   }
 });
 
