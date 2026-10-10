@@ -61,32 +61,18 @@ function App() {
 
   // Завантаження статистики місяця
 
-  const loadMonthStats = async (date, signal) => {
+  const loadMonthStats = async () => {
     try {
-      const year = date.getFullYear();
-      const month = date.getMonth();
-
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
       const res = await fetch(
         `${API.CALENDAR}/month-stats?year=${year}&month=${month}`,
-        { signal },
       );
-
-      if (!res.ok) {
-        throw new Error(`Помилка завантаження статистики: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      if (!signal?.aborted) {
-        setMonthStats(data);
-      }
+      setMonthStats(await res.json());
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Помилка завантаження статистики місяця:', error);
-      }
+      console.error('Помилка завантаження статистики місяця:', error);
     }
   };
-
   // Завантаження списку клієнтів із бази
 
   const loadClientsData = async () => {
@@ -122,13 +108,7 @@ function App() {
   }, [selectedDate]);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    loadMonthStats(currentDate, controller.signal);
-
-    return () => {
-      controller.abort();
-    };
+    loadMonthStats();
   }, [currentDate]);
 
   // Функції календаря
