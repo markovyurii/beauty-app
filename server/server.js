@@ -1,20 +1,18 @@
-const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// Импортируем модели
+// Імпортуємо моделі для аналітики
 const Appointment = require('./models/Appointment');
 
-// Импортируем модули маршрутов
+// Імпортуємо модулі маршрутів
 const serviceRoutes = require('./routes/serviceRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const calendarRoutes = require('./routes/calendarRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
@@ -30,18 +28,20 @@ app.use(
 );
 app.use(express.json());
 
-// ПІДКЛЮЧЕННЯ ДО БАЗИ ДАНИХ MONGODB (Асинхронно, без блокировки порта)
+// ПІДКЛЮЧЕННЯ ДО MONGODB (Для Vercel Serverless – підключається при кожному виклику функції)
 if (process.env.MONGO_URI) {
   mongoose
     .connect(process.env.MONGO_URI)
     .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
     .catch((err) => console.error('❌ Помилка підключення до бази:', err));
 } else {
-  console.error('❌ Критична помилка: змінна MONGO_URI відсутня!');
+  console.error(
+    '❌ Критична помилка: змінна MONGO_URI відсутня в налаштуваннях Vercel!',
+  );
 }
 
 // ==========================================
-// 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ)
+// 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ З $)
 // ==========================================
 app.get('/api/analytics', async (req, res) => {
   try {
@@ -53,25 +53,40 @@ app.get('/api/analytics', async (req, res) => {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(queryDate);
     endOfDay.setHours(23, 59, 59, 999);
-    
-    // ИСПРАВЛЕНО: Возвращены обязательные знаки \$
+
+    // ПРАВИЛЬНО: Використовуємо $gte та $lte
     const dayApps = await Appointment.find({
       date: { $gte: startOfDay, $lte: endOfDay },
     });
-    const totalDay = dayApps.reduce((sum, app) => sum + (app.finalPrice || 0), 0);
+    const totalDay = dayApps.reduce(
+      (sum, app) => sum + (app.finalPrice || 0),
+      0,
+    );
 
     // Розрахунок за місяць
-    const startOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth(), 1);
-    const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
-    
-    // ИСПРАВЛЕНО: Возвращены обязательные знаки \$
+    const startOfMonth = new Date(
+      queryDate.getFullYear(),
+      queryDate.getMonth(),
+      1,
+    );
+    const endOfMonth = new Date(
+      queryDate.getFullYear(),
+      queryDate.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // ПРАВИЛЬНО: Використовуємо $gte та $lte
     const monthApps = await Appointment.find({
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
 
     const totalMonth = monthApps.reduce((sum, app) => {
       if (!app.date) return sum;
-      
+
       const appointmentDate = new Date(app.date);
       const checkLimit = new Date(now);
       checkLimit.setDate(checkLimit.getDate() + 1);
@@ -82,7 +97,9 @@ app.get('/api/analytics', async (req, res) => {
       return sum;
     }, 0);
 
-    res.status(200).json({ day: { total: totalDay }, month: { total: totalMonth } });
+    res
+      .status(200)
+      .json({ day: { total: totalDay }, month: { total: totalMonth } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -108,16 +125,12 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
 
-// ==========================================
-// 🛣 РОЗДАЧА СТАТИКИ REACT
-// ==========================================
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+// Заглушка для головного роуту API на Vercel
+app.get('/', (req, res) => {
+  res
+    .status(200)
+    .send('🚀 Beauty CRM Serverless API is running perfectly on Vercel...');
 });
 
-// ЗАПУСК СЕРВЕРА (Мгновенный, как требует Render)
-app.listen(PORT, () =>
-  console.log(`🚀 Професійний бєкенд успішно запущено на порту ${PORT}`),
-);
+// КРИТИЧНО ДЛЯ VERCEL: Експортуємо наш додаток (запуск через app.listen у хмарі робить сам Vercel)
+module.exports = app;
