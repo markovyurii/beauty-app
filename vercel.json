@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "builds": [
@@ -14,19 +15,16 @@
     }
   ],
   "routes": [
-  {
-    "src": "/api/(.*)",
-    "dest": "server/server.js"
-  },
-  {
-    "src": "/assets/(.*)",
-    "dest": "/client/assets/$1"
-  },
-  {
-    "handle": "filesystem"
-  },
-  {
-    "src": "/(.*)",
-    "dest": "/client/index.html"
-  }
-]
+    {
+      "src": "/api/(.*)",
+      "dest": "server/server.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
