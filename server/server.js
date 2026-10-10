@@ -30,6 +30,9 @@ app.use(express.json());
 
 // ПІДКЛЮЧЕННЯ ДО MONGODB (Для Vercel Serverless – підключається при кожному виклику функції)
 if (process.env.MONGO_URI) {
+  console.error('[DB] MONGO_URI відсутня в середовищі Vercel');
+} else {
+  console.log('[DB] MONGO_URI доступна');
   mongoose
     .connect(process.env.MONGO_URI)
     .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
