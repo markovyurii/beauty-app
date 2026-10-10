@@ -45,53 +45,64 @@ if (process.env.MONGO_URI) {
 // ==========================================
 app.get('/api/analytics', async (req, res) => {
   try {
-    const queryDate = req.query.date ? new Date(req.query.date) : new Date();
+    const baseDate = req.query.date ? new Date(req.query.date) : new Date();
     const now = new Date();
 
-    // Розрахунок за день
-    const startOfDay = new Date(queryDate);
+    // 1. Расчет за конкретный выбранный день
+    const startOfDay = new Date(baseDate);
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(queryDate);
+    const endOfDay = new Date(baseDate);
     endOfDay.setHours(23, 59, 59, 999);
+
     const dayApps = await Appointment.find({
       date: { $gte: startOfDay, $lte: endOfDay },
     });
     const totalDay = dayApps.reduce(
-      (sum, app) => sum + (app.finalPrice || 0),
+      (sum, app) => sum + (Number(app.finalPrice) || 0),
       0,
     );
 
-    // Розрахунок за місяць
+    // 2. Расчет за месяц
     const startOfMonth = new Date(
-      queryDate.getFullYear(),
-      queryDate.getMonth(),
+      baseDate.getFullYear(),
+      baseDate.getMonth(),
       1,
     );
     const endOfMonth = new Date(
-      queryDate.getFullYear(),
-      queryDate.getMonth() + 1,
+      baseDate.getFullYear(),
+      baseDate.getMonth() + 1,
       0,
       23,
       59,
       59,
       999,
     );
+
     const monthApps = await Appointment.find({
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
+
+    // Считаем сумму ТОЛЬКО выполненных (тех, что уже прошли по времени)
     const totalMonth = monthApps.reduce((sum, app) => {
+      if (!app.date || !app.finalPrice) return sum;
+
       const appointmentDate = new Date(app.date);
+      // Если дата записи меньше или равна текущему моменту — суммируем
       if (appointmentDate <= now) {
-        return sum + (app.finalPrice || 0);
+        return sum + (Number(app.finalPrice) || 0);
       }
       return sum;
     }, 0);
 
-    res
-      .status(200)
-      .json({ day: { total: totalDay }, month: { total: totalMonth } });
+    // Возвращаем чистый JSON
+    res.status(200).json({
+      day: { total: totalDay },
+      month: { total: totalMonth },
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Ошибка в роуте аналитики:', error.message);
+    // Защита: даже если всё упало, возвращаем ноль, чтобы фронтенд не ломался!
+    res.status(200).json({ day: { total: 0 }, month: { total: 0 } });
   }
 });
 
