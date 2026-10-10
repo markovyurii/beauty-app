@@ -80,7 +80,7 @@ app.get('/api/analytics', async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
     
     const dayApps = await Appointment.find({
-      date: { gte: startOfDay, lte: endOfDay },
+      date: { $gte: startOfDay, $lte: endOfDay },
     });
     const totalDay = dayApps.reduce((sum, app) => sum + (app.finalPrice || 0), 0);
 
@@ -89,7 +89,7 @@ app.get('/api/analytics', async (req, res) => {
     const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const monthApps = await Appointment.find({
-      date: { gte: startOfMonth, lte: endOfMonth },
+      date: { $gte: startOfMonth, $lte: endOfMonth },
     });
 
     const totalMonth = monthApps.reduce((sum, app) => {
