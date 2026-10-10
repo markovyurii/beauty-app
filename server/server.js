@@ -30,43 +30,19 @@ app.use(
 );
 app.use(express.json());
 
-let cachedConnection = null;
-
+// ОПТИМІЗОВАНО: Підключаємо базу даних один раз при старті
 const connectDB = async () => {
-  if (cachedConnection && mongoose.connection.readyState === 1) {
-    return cachedConnection;
-  }
-  if (cachedConnection && mongoose.connection.readyState === 2) {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return connectDB();
-  }
   try {
     if (!process.env.MONGO_URI) throw new Error('MONGO_URI is missing');
-    cachedConnection = await mongoose.connect(process.env.MONGO_URI, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-    });
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('🔌 База даних MongoDB успішно підключена!');
-    return cachedConnection;
   } catch (err) {
     console.error('❌ Критична помилка підключення до бази:', err);
-    cachedConnection = null;
-    throw err;
   }
 };
 
-// Проміжний шар підключення бази перед кожним запитом
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    res.status(500).json({ error: "Помилка підключення до бази даних" });
-  }
-});
-
 // ==========================================
-// 📊 ЕНДПОІНТ АНАЛІТИКИ (Виконані записи + без мутацій)
+// 📊 ЕНДПОІНТ АНАЛІТИКИ (Суворий стандарт з \$)
 // ==========================================
 app.get('/api/analytics', async (req, res) => {
   try {
@@ -80,7 +56,7 @@ app.get('/api/analytics', async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
     
     const dayApps = await Appointment.find({
-      date: { $gte: startOfDay, $lte: endOfDay },
+      date: { gte: startOfDay, lte: endOfDay },
     });
     const totalDay = dayApps.reduce((sum, app) => sum + (app.finalPrice || 0), 0);
 
@@ -89,7 +65,7 @@ app.get('/api/analytics', async (req, res) => {
     const endOfMonth = new Date(queryDate.getFullYear(), queryDate.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const monthApps = await Appointment.find({
-      date: { $gte: startOfMonth, $lte: endOfMonth },
+      date: { gte: startOfMonth, lte: endOfMonth },
     });
 
     const totalMonth = monthApps.reduce((sum, app) => {
@@ -132,7 +108,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
 
 // ==========================================
-// 🛣 РОЗДАЧА СТАТИКИ REACT (БЕЗПЕЧНИЙ СТАНДАРТ ДЛЯ EXPRESS 5)
+// 🛣 РОЗДАЧА СТАТИКИ REACT
 // ==========================================
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
@@ -140,7 +116,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-// ЗАПУСК СЕРВЕРА
-app.listen(PORT, () =>
-  console.log(`🚀 Професійний бєкенд успішно запущено на порту ${PORT}`),
-);
+// ЗАПУСК СЕРВЕРА СУВОРО ПІСЛЯ ПІДКЛЮЧЕННЯ БАЗИ ДАНИХ
+connectDB().then(() => {
+  app.listen(PORT, () =>
+    console.log(`🚀 Професійний бєкенд успішно запущено на порту ${PORT}`),
+  );
+});
