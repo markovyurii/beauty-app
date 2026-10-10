@@ -60,16 +60,30 @@ function App() {
   };
 
   // Завантаження статистики місяця
-  const loadMonthStats = async () => {
+
+  const loadMonthStats = async (date, signal) => {
     try {
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
       const res = await fetch(
         `${API.CALENDAR}/month-stats?year=${year}&month=${month}`,
+        { signal },
       );
-      setMonthStats(await res.json());
+
+      if (!res.ok) {
+        throw new Error(`Помилка завантаження статистики: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      if (!signal?.aborted) {
+        setMonthStats(data);
+      }
     } catch (error) {
-      console.error('Помилка завантаження статистики місяця:', error);
+      if (error.name !== 'AbortError') {
+        console.error('Помилка завантаження статистики місяця:', error);
+      }
     }
   };
 
@@ -108,7 +122,13 @@ function App() {
   }, [selectedDate]);
 
   useEffect(() => {
-    loadMonthStats();
+    const controller = new AbortController();
+
+    loadMonthStats(currentDate, controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [currentDate]);
 
   // Функції календаря
