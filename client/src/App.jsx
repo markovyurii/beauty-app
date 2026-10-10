@@ -178,7 +178,7 @@ function App() {
   const handleAddAppointment = async (e) => {
     e.preventDefault();
     try {
-      const fullDateTime = `${selectedDate}T${appointmentTime}:00`;
+      const fullDateTime = `${appointmentDate || selectedDate}T${appointmentTime}:00`;
       const isEditing = editingAppointmentId && editingAppointmentId !== null;
       const url = isEditing
         ? `${API.APPOINTMENTS}/${editingAppointmentId}`
@@ -624,7 +624,8 @@ function App() {
                         value={appointmentDate || selectedDate} // Використовує поточну обрану датуcalend
                         onChange={(e) => {
                           const newDate = e.target.value;
-                          setSelectedDate(newDate); // Записуємо дату форми
+                          setAppointmentDate(newDate);
+                          setSelectedDate(newDate);
                           loadData(newDate); // Оновлюємо години для цього дня
                         }}
                         required

@@ -118,17 +118,7 @@ app.get('/api/analytics', async (req, res) => {
   }
 });
 
-// ТИМЧАСОВИЙ МАРШРУТ ДЛЯ ОЧИЩЕННЯ ТЕСТІВ
-app.get('/api/clear-database-tests', async (req, res) => {
-  try {
-    const Client = require('./models/Client');
-    await Appointment.deleteMany({});
-    await Client.deleteMany({});
-    res.status(200).send('🧹 Базу візитів та клієнтів повністю очищено!');
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+
 
 // ==========================================
 // 🛣 ПІДКЛЮЧЕННЯ РОУТЕРІВ ДО ЕКСПРЕСУ (API)
