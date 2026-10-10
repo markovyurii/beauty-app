@@ -29,20 +29,22 @@ app.use(
 app.use(express.json());
 
 // ПІДКЛЮЧЕННЯ ДО MONGODB (Для Vercel Serverless – підключається при кожному виклику функції)
-if (process.env.MONGO_URI) {
+if (!process.env.MONGO_URI) {
   console.error('[DB] MONGO_URI відсутня в середовищі Vercel');
 } else {
   console.log('[DB] MONGO_URI доступна');
-  mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => console.log('🔌 База даних MongoDB успішно підключена!'))
-    .catch((err) => console.error('❌ Помилка підключення до бази:', err));
-} else {
-  console.error(
-    '❌ Критична помилка: змінна MONGO_URI відсутня в налаштуваннях Vercel!',
-  );
-}
 
+  mongoose
+    .connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 8000,
+    })
+    .then(() => {
+      console.log('[DB] MongoDB успішно підключена');
+    })
+    .catch((err) => {
+      console.error('[DB] Помилка підключення:', err.name, err.message);
+    });
+}
 // ==========================================
 // 📊 ЕНДПОІНТ АНАЛІТИКИ (ЗАЛІЗОБЕТОННО ВИПРАВЛЕНИЙ З $)
 // ==========================================
@@ -127,8 +129,6 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/calendar', calendarRoutes);
-
-
 
 // КРИТИЧНО ДЛЯ VERCEL: Експортуємо наш додаток (запуск через app.listen у хмарі робить сам Vercel)
 module.exports = app;
